@@ -1,0 +1,73 @@
+##############################################
+# Coloring Map For （ ）          
+##############################################
+##############################################
+# Classes and Objects (KEYWORD1)
+##############################################
+BMS26M833	KEYWORD1               
+##############################################
+# Methods and Functions (KEYWORD2)
+##############################################
+begin	KEYWORD2       
+writeReg	KEYWORD2
+readReg	KEYWORD2
+readPixels	KEYWORD2         
+readPixelsAndMaximum	KEYWORD2
+getINTTable	KEYWORD2
+getOperationMode	KEYWORD2   
+sleep	KEYWORD2 
+reset	KEYWORD2 
+getFrameMode	KEYWORD2  
+getINT	KEYWORD2  
+getStatus	KEYWORD2
+getAverageOutputMode	KEYWORD2 
+readThermistorTemp	KEYWORD2
+beginMeasure	KEYWORD2
+setFrameMode	KEYWORD2
+setINT	KEYWORD2  
+setInterruptLevels	KEYWORD2 
+setStatusClear	KEYWORD2 
+setAverageOutputMode	KEYWORD2 
+setOperationMode	KEYWORD2  
+##############################################
+# Constants (LITERAL1)
+##############################################
+BMS26M833_IICADDR	LITERAL1
+REG_PCTL	LITERAL1
+REG_RST	LITERAL1
+REG_FPSC	LITERAL1
+REG_INTC	LITERAL1
+REG_STAT	LITERAL1
+REG_SCLR	LITERAL1
+REG_AVE	LITERAL1
+REG_INTHL	LITERAL1
+REG_INTHH	LITERAL1
+REG_INTLL	LITERAL1
+REG_INTLH	LITERAL1
+REG_IHYSL	LITERAL1
+REG_IHYSH	LITERAL1
+REG_TTHL	LITERAL1
+REG_TTHH	LITERAL1
+REG_T01L	LITERAL1
+REG_T17L	LITERAL1
+REG_T33L	LITERAL1
+REG_T49L	LITERAL1
+NORMAL_MODE	LITERAL1
+SLEEP_MODE	LITERAL1
+STAND_BY_MODE_60SEC	LITERAL1
+STAND_BY_MODE_10SEC	LITERAL1
+FLAG_RESET	LITERAL1
+INITIAL_RESET	LITERAL1
+FPS_1	LITERAL1
+FPS_10	LITERAL1
+ABS_VALUE_INT	LITERAL1
+DIFFERENCE_INT	LITERAL1
+OVT_CLR	LITERAL1
+OVS_CLR	LITERAL1
+INTCLR	LITERAL1
+TWICE_MOVE_AVE_OUTPUT	LITERAL1
+ONE_MOVE_OUTPUT	LITERAL1
+ENABLE	LITERAL1
+DISABLE	LITERAL1
+
+

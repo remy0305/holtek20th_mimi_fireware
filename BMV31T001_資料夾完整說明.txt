@@ -1,0 +1,841 @@
+BMV31T001 資料夾完整說明
+掃描日期：2026-04-22
+
+一、總覽
+
+本資料夾實際 library 根目錄為：
+BMV31T001/BMV31T001
+
+這是一個 Arduino library，用來控制 Best Modules 的 BMV31T001 Voice Playback Shield。BMV31T001 主要透過單線 one-wire 類型的資料腳位控制語音播放，也支援按鍵、LED、電源控制，以及透過序列埠/燒錄流程更新語音來源。
+
+資料夾內共有 102 個檔案：
+- 4 個 library 文件/metadata：README.md、LICENSE.md、library.properties、keywords.txt
+- 2 個 library 原始碼：src/BMV31T001.h、src/BMV31T001.cpp
+- 1 個 Arduino 範例 sketch：voiceUpdateAndPlayback.ino
+- 2 個 voice command list：範例根目錄與 VoiceBroadcast 專案各一份
+- 2 張接線/電路圖片：layout.PNG、schematic.PNG
+- 7 個 VoiceBroadcast 專案設定/輸出檔：Demo_key_mapping.h、PrjSetting.ini、set.ini、Setting.ini、VoiceBroadcast.dat、VoiceBroadcast.ini、VoiceBroadcast.vup
+- 70 個 Voice Files 檔案：10 組語音，每組 mp3/wav/RAW/raw2/PCM/COD/FREQ.TXT 等格式
+- 10 個 output wav 檔案
+
+注意：
+- 第 10 組語音在設定檔中顯示為「十.mp3 / 十.wav」，但在目前檔案系統讀取結果中顯示為「坋.*」。這很可能是中文檔名編碼顯示問題。
+- 多個 source 註解中的中文或特殊符號有亂碼，推測是原始檔案編碼與目前讀取環境不一致。
+- BMV31T001.cpp 內 pin 腳位是寫死的，例如 DATA=12、LED=8、STATUS=9、POWER=A0、按鍵 A1-A5；若硬體不同需修改 library source 或封裝成可設定參數。
+
+
+二、資料夾結構
+
+BMV31T001/BMV31T001/
+- README.md
+- LICENSE.md
+- library.properties
+- keywords.txt
+- src/
+  - BMV31T001.h
+  - BMV31T001.cpp
+- examples/
+  - voiceUpdateAndPlayback/
+    - voiceUpdateAndPlayback.ino
+    - voice_cmd_list.h
+    - layout.PNG
+    - schematic.PNG
+    - VoiceBroadcast/
+      - Demo_key_mapping.h
+      - PrjSetting.ini
+      - set.ini
+      - Setting.ini
+      - VoiceBroadcast.dat
+      - VoiceBroadcast.ini
+      - VoiceBroadcast.vup
+      - voice_cmd_list.h
+      - Voice Files/
+        - 1.* 到 9.*，以及第 10 組「坋.*」
+        - Option1.ini
+        - output/
+          - 1.wav 到 9.wav，以及 坋.wav
+
+
+三、Library 文件與 Arduino metadata
+
+1. README.md
+
+行數：41
+大小：1602 bytes
+
+官方 README。
+重點：
+- BMV31T001 是 Best Modules 的 voice playback shield。
+- 使用 one-wire communication 實作播放控制。
+- library 提供 Arduino function 說明與安裝資訊。
+- 範例示範 online voice source update 與 voice play operation。
+- 可透過 Arduino Library Manager 搜尋 BMV31T001 安裝。
+- V1.0.1 是 initial public release。
+
+
+2. LICENSE.md
+
+行數：28
+大小：1498 bytes
+
+BSD 3-Clause License。
+重點：
+- 可使用、修改、散布原始碼與二進位。
+- 散布時需保留授權與 copyright。
+- 不得未經授權使用作者/貢獻者名稱背書。
+- 軟體以 as-is 提供，不保固。
+
+
+3. library.properties
+
+行數：9
+大小：393 bytes
+
+Arduino Library Manager metadata。
+內容：
+- name=BMV31T001
+- version=1.0.1
+- author=BESTMODULES
+- category=DeviceControl
+- sentence=Arduino library for one-wire access to the BMV31T001 that Voice Playback Shield
+- url=https://github.com/BestModules-Libraries/BMV31T001
+- architectures=*
+
+
+4. keywords.txt
+
+行數：55
+大小：1401 bytes
+
+Arduino IDE 語法上色設定。
+
+KEYWORD1：
+- BMV31T001
+
+KEYWORD2：
+- begin
+- reset
+- setVolume
+- playVoice
+- playSentence
+- playStop
+- playPause
+- playContinue
+- playRepeat
+- isPlaying
+- scanKey
+- isKeyAction
+- readKeyValue
+- setPower
+- setLED
+- initAudioUpdate
+- isUpdateBegin
+- executeUpdate
+
+LITERAL1：
+- BMV31T001_KEY_MIDDLE
+- BMV31T001_KEY_UP
+- BMV31T001_KEY_DOWN
+- BMV31T001_KEY_LEFT
+- BMV31T001_KEY_RIGHT
+- BMV31T001_LED_ON
+- BMV31T001_LED_OFF
+- BMV31T001_BUSY
+- BMV31T001_NOBUSY
+- BMV31T001_POWER_ENABLE
+- BMV31T001_POWER_DISABLE
+- BMV31T001_UPDATA_BEGIN
+- BMV31T001_NO_KEY
+- BMV31T001_VOLUME_MAX
+- BMV31T001_VOLUME_MIN
+
+
+四、核心 Library 原始碼
+
+5. src/BMV31T001.h
+
+行數：110
+大小：3997 bytes
+
+BMV31T001 class 宣告與常數定義。
+
+主要常數：
+- Key：
+  BMV31T001_KEY_MIDDLE = 0x01
+  BMV31T001_KEY_UP = 0x02
+  BMV31T001_KEY_DOWN = 0x04
+  BMV31T001_KEY_LEFT = 0x08
+  BMV31T001_KEY_RIGHT = 0x10
+- LED：
+  BMV31T001_LED_ON = 1
+  BMV31T001_LED_OFF = 0
+- 播放狀態：
+  BMV31T001_BUSY = 1
+  BMV31T001_NOBUSY = 0
+- 電源：
+  BMV31T001_POWER_ENABLE = 1
+  BMV31T001_POWER_DISABLE = 0
+- 更新：
+  BMV31T001_UPDATA_BEGIN = 1
+- 音量：
+  BMV31T001_VOLUME_MAX = 11
+  BMV31T001_VOLUME_MIN = 0
+
+公開 API：
+- begin()
+- setVolume(volume)
+- playVoice(num, loop = 0)
+- playSentence(num, loop = 0)
+- playStop()
+- playPause()
+- playContinue()
+- playRepeat()
+- isPlaying()
+- scanKey()
+- isKeyAction()
+- readKeyValue()
+- setPower(status)
+- setLED(status)
+- initAudioUpdate(baudrate = 256000)
+- isUpdateBegin()
+- executeUpdate()
+
+private 內容：
+- writeCmd()
+- reset()
+- programEntry、programDataOut1/0、programAddrOut1/0、sendAddr、sendData、matchPattern、ack、dummyClocks、readData
+- switchSPIMode、checkCRC8、recAudioData
+- SPI flash 操作：SPIFlashWriteEnable、SPIFlashWaitForWriteEnd、SPIFlashChipErase、SPIFlashPageWrite、SPIFlashReadSFDP
+- deviceSFDPBuf[3]、rxBuffer[64]、_flashAddr
+
+
+6. src/BMV31T001.cpp
+
+行數：1335
+大小：42674 bytes
+
+BMV31T001 的主要實作檔。
+
+硬體 pin 定義：
+- KEY_UP = A1
+- KEY_LEFT = A2
+- KEY_DOWN = A3
+- KEY_RIGHT = A4
+- KEY_MIDDLE = A5
+- POWER_PIN = A0
+- LED_PIN = 8
+- STATUS_PIN = 9
+- DATA = 12
+- SPI chip select SEL = 10
+- ICPCK = 13
+- ICPDA = 11
+
+播放控制 command：
+- PAUSE_PLAY = 0xF1
+- CONTINUE_PLAY = 0xF2
+- LOOP_PLAY = 0xF4
+- STOP_PLAY = 0xF8
+
+主要功能分類：
+
+A. 初始化
+- BMV31T001()
+  初始化 key、update address 等內部狀態。
+- begin()
+  reset 模組，設定 POWER/LED/DATA/ICPCK/STATUS/KEY pins，並 delay 1000 ms 等待模組就緒。
+
+B. 單線播放控制
+- writeCmd(cmd, data)
+  用 DATA pin 送出 command。資料 bit 以不同 high/low pulse 長度表示 1/0：
+  bit 1：HIGH 約 1200 us、LOW 約 400 us
+  bit 0：HIGH 約 400 us、LOW 約 1200 us
+  每個 command 前有 start signal。
+- setVolume(volume)
+  送 0xE1 + volume。volume 0 到 11。
+- playVoice(num, loop)
+  num < 128 時送 0xFA + num；num >= 128 時送 0xFB + num % 128。
+  loop 為 true 時加送 0xF4。
+- playSentence(num, loop)
+  播放 sentence command，對應 0x80 起算的句子編號。
+- playStop/playPause/playContinue/playRepeat
+  分別送 0xF8、0xF1、0xF2、0xF4。
+- isPlaying()
+  讀 STATUS_PIN 判斷 busy/no busy。
+
+C. Key/LED/Power
+- scanKey()
+  掃 A1-A5 按鍵並更新內部 key value。
+- isKeyAction()
+  回傳是否有 key action。
+- readKeyValue()
+  讀目前 key bitmask。
+- setPower(status)
+  控制 POWER_PIN。
+- setLED(status)
+  控制 LED_PIN。
+
+D. Voice source update
+- initAudioUpdate(baudrate)
+  初始化序列埠/更新通道，預設 baudrate 256000。
+- isUpdateBegin()
+  偵測是否收到更新開始訊號。
+- executeUpdate()
+  執行語音資料更新流程。
+- recAudioData()
+  接收音訊資料。
+- programEntry、ack、dummyClocks、sendAddr、sendData、readData 等
+  用於進入 program mode、傳送位址/資料、確認 ACK。
+- switchSPIMode()
+  切換到 SPI flash 操作模式。
+- SPIFlashChipErase、SPIFlashPageWrite、SPIFlashReadSFDP 等
+  操作外部 SPI flash。
+- checkCRC8()
+  使用 CRC8 table 驗證資料。
+
+掃描時看到的注意事項：
+- initAudioUpdate、isUpdateBegin、executeUpdate、recAudioData 在函式清單中各出現兩次，可能是因為檔案內有不同編譯條件或重複實作區塊；若後續要維護，建議檢查是否有條件編譯包住。
+- pin 腳位寫死，不像 BMS26M833 可在 constructor 傳 pin，移植性較低。
+- BMV31T001_UPDATA_BEGIN 拼字是 UPDATA，不是 UPDATE；這是 library 既有常數名稱，使用時需照原名。
+
+
+五、Arduino 範例
+
+7. examples/voiceUpdateAndPlayback/voiceUpdateAndPlayback.ino
+
+行數：136
+大小：5483 bytes
+
+官方範例 sketch，展示語音更新與按鍵控制播放。
+
+主要流程：
+
+setup():
+- myBMV31T001.begin()
+- myBMV31T001.setPower(BMV31T001_POWER_ENABLE)
+- myBMV31T001.initAudioUpdate()
+- delay(100)
+- myBMV31T001.setVolume(DEFAULT_VOLUME)
+
+loop():
+1. 語音來源更新：
+   - if myBMV31T001.isUpdateBegin() == BMV31T001_UPDATA_BEGIN
+   - 呼叫 executeUpdate()
+2. 播放狀態 LED：
+   - isPlaying() == BUSY 時 LED on
+   - 否則 LED off
+3. 掃描按鍵：
+   - scanKey()
+   - isKeyAction()
+   - readKeyValue()
+4. 按鍵功能：
+   - Middle：播放/停止目前 voice
+   - Up：音量加
+   - Down：音量減
+   - Left：上一個 voice 並播放
+   - Right：下一個 voice 並播放
+
+語音表：
+- VOICE_TOTAL_NUMBER = 10
+- voice_table 包含 VOC_1 到 VOC_10
+- DEFAULT_VOLUME = 6
+
+
+8. examples/voiceUpdateAndPlayback/voice_cmd_list.h
+
+行數：22
+大小：372 bytes
+
+範例使用的 voice command list。
+定義：
+- VOC_1 = 0x00
+- VOC_2 = 0x01
+- VOC_3 = 0x02
+- VOC_4 = 0x03
+- VOC_5 = 0x04
+- VOC_6 = 0x05
+- VOC_7 = 0x06
+- VOC_8 = 0x07
+- VOC_9 = 0x08
+- VOC_10 = 0x09
+
+沒有 sentence 定義。
+
+
+9. examples/voiceUpdateAndPlayback/layout.PNG
+
+大小：259464 bytes
+尺寸：1280 x 720
+
+voiceUpdateAndPlayback 範例接線 layout 圖。
+二進位圖片，不含程式邏輯。
+
+
+10. examples/voiceUpdateAndPlayback/schematic.PNG
+
+大小：59938 bytes
+尺寸：1280 x 720
+
+voiceUpdateAndPlayback 範例電路 schematic 圖。
+二進位圖片，不含程式邏輯。
+
+
+六、VoiceBroadcast 專案檔
+
+VoiceBroadcast 看起來是 Best Modules/語音燒錄工具產生的專案資料夾，用來把 mp3/wav 語音轉成 BMV31T001 可播放/可寫入 flash 的資料。
+
+11. examples/voiceUpdateAndPlayback/VoiceBroadcast/Demo_key_mapping.h
+
+行數：7
+大小：199 bytes
+
+內容很短：
+- include ht68fv022.inc
+- COMMANDABLE_NUM = 0
+
+用途推測：
+- 語音工具產生的 key mapping header。
+- 目前沒有定義任何 command trigger。
+
+
+12. examples/voiceUpdateAndPlayback/VoiceBroadcast/PrjSetting.ini
+
+行數：3
+大小：39 bytes
+
+VoiceBroadcast 工具的專案進度狀態：
+- Progress=100
+- Generating=0
+
+代表專案生成完成，沒有正在產生中。
+
+
+13. examples/voiceUpdateAndPlayback/VoiceBroadcast/set.ini
+
+行數：10
+大小：298 bytes
+
+VoiceBroadcast 工具設定。
+重點：
+- Mode Configure=0
+- PWMC0=224
+- Max sentence number=0
+- Max voice number=9
+- SurroundICModeSelect=5
+- isHT_ADPCM=0
+- isHT_uPCM=0
+
+Max voice number=9 對應索引 0 到 9，也就是 10 個 voice。
+
+
+14. examples/voiceUpdateAndPlayback/VoiceBroadcast/Setting.ini
+
+行數：72
+大小：3632 bytes
+
+語音清單與壓縮設定。
+
+重點：
+- [Voice] Number=10
+- Voice1 到 Voice10。
+- 每個 voice 都是 PCM(High Quality)。
+- Song length 約 0.3 到 0.6 秒。
+- Voice10_Name 在設定中是「十.mp3」，Command_Name=10。
+- [Sentence] Number=0，沒有 sentence。
+
+Voice 對應：
+- Voice1：1.mp3，Command_Name=1，長度 0.4 s
+- Voice2：2.mp3，Command_Name=2，長度 0.3 s
+- Voice3：3.mp3，Command_Name=3，長度 0.5 s
+- Voice4：4.mp3，Command_Name=4，長度 0.5 s
+- Voice5：5.mp3，Command_Name=5，長度 0.6 s
+- Voice6：6.mp3，Command_Name=6，長度 0.4 s
+- Voice7：7.mp3，Command_Name=7，長度 0.5 s
+- Voice8：8.mp3，Command_Name=8，長度 0.4 s
+- Voice9：9.mp3，Command_Name=9，長度 0.6 s
+- Voice10：十.mp3，Command_Name=10，長度 0.5 s
+
+
+15. examples/voiceUpdateAndPlayback/VoiceBroadcast/VoiceBroadcast.ini
+
+行數：175
+大小：5070 bytes
+
+VoiceBroadcast 專案主要設定。
+
+重點：
+- Project File Version=0100
+- IC Data Version=010A
+- MCU Frequency=16000000
+- Used MCU Name=HT68FV022
+- Package Type=SOP-A
+- Package Pin Count=8
+- Flash size=2097152 bytes
+- WAV File Setting Number=10
+- Compression Mode=6
+
+Voice 對應與編碼大小：
+- VOC_1：1.mp3，Original 2553，Encoded 16643
+- VOC_2：2.mp3，Original 1926，Encoded 11870
+- VOC_3：3.mp3，Original 3023，Encoded 20363
+- VOC_4：4.mp3，Original 3023，Encoded 20519
+- VOC_5：5.mp3，Original 3806，Encoded 26402
+- VOC_6：6.mp3，Original 2709，Encoded 18455
+- VOC_7：7.mp3，Original 3179，Encoded 21551
+- VOC_8：8.mp3，Original 2866，Encoded 17633
+- VOC_9：9.mp3，Original 3493，Encoded 23726
+- VOC_10：十.mp3，Original 3023，Encoded 20534
+
+Voice Schedule Setting Number=0，沒有排程/句子組合。
+
+
+16. examples/voiceUpdateAndPlayback/VoiceBroadcast/VoiceBroadcast.vup
+
+行數：5
+大小：132 bytes
+
+VoiceBroadcast 專案識別檔。
+內容：
+- version=1.0
+- projectName=VoiceBroadcast
+- ic=HT68FV022
+
+
+17. examples/voiceUpdateAndPlayback/VoiceBroadcast/VoiceBroadcast.dat
+
+大小：2097154 bytes
+
+大型二進位資料檔，大小約 2 MB。
+依 VoiceBroadcast.ini 的 flash size=2097152 判斷，這是語音資料或 flash image，用於更新/燒錄到 BMV31T001/HT68FV022 相關 flash。
+
+此檔不應用文字方式解讀。
+
+
+18. examples/voiceUpdateAndPlayback/VoiceBroadcast/voice_cmd_list.h
+
+行數：21
+大小：371 bytes
+
+VoiceBroadcast 專案內產生的 voice command list。
+內容與範例根目錄的 voice_cmd_list.h 幾乎相同：
+- VOC_1 到 VOC_10 對應 0x00 到 0x09。
+
+
+七、Voice Files 音訊素材與中間檔
+
+Voice Files 內共有 71 個檔案：
+- 10 組語音，每組有 .mp3、.wav、.RAW、.raw2、.PCM、.COD、.FREQ.TXT，共 70 個。
+- Option1.ini 1 個。
+
+每組檔案用途推測：
+- .mp3：原始輸入語音檔。
+- .wav：由工具轉出的 WAV。
+- .RAW：raw audio data。
+- .raw2：第二階段 raw/intermediate data。
+- .PCM：PCM 格式中間檔。
+- .COD：編碼後可被 VoiceBroadcast/模組使用的語音資料。
+- .FREQ.TXT：每個 voice 的頻率/分析資訊文字檔，大小都 520 bytes。
+
+19. Voice Files/1.*
+
+檔案：
+- 1.mp3：2553 bytes
+- 1.wav：17422 bytes
+- 1.RAW：23448 bytes
+- 1.raw2：23448 bytes
+- 1.PCM：23448 bytes
+- 1.COD：16643 bytes
+- 1.FREQ.TXT：520 bytes
+
+對應 VOC_1 / Command 1。
+
+
+20. Voice Files/2.*
+
+檔案：
+- 2.mp3：1926 bytes
+- 2.wav：12814 bytes
+- 2.RAW：16918 bytes
+- 2.raw2：16918 bytes
+- 2.PCM：16918 bytes
+- 2.COD：11870 bytes
+- 2.FREQ.TXT：520 bytes
+
+對應 VOC_2 / Command 2。
+
+
+21. Voice Files/3.*
+
+檔案：
+- 3.mp3：3023 bytes
+- 3.wav：20878 bytes
+- 3.RAW：28346 bytes
+- 3.raw2：28346 bytes
+- 3.PCM：28346 bytes
+- 3.COD：20363 bytes
+- 3.FREQ.TXT：520 bytes
+
+對應 VOC_3 / Command 3。
+
+
+22. Voice Files/4.*
+
+檔案：
+- 4.mp3：3023 bytes
+- 4.wav：20878 bytes
+- 4.RAW：28346 bytes
+- 4.raw2：28346 bytes
+- 4.PCM：28346 bytes
+- 4.COD：20519 bytes
+- 4.FREQ.TXT：520 bytes
+
+對應 VOC_4 / Command 4。
+
+
+23. Voice Files/5.*
+
+檔案：
+- 5.mp3：3806 bytes
+- 5.wav：26638 bytes
+- 5.RAW：36510 bytes
+- 5.raw2：36510 bytes
+- 5.PCM：36510 bytes
+- 5.COD：26402 bytes
+- 5.FREQ.TXT：520 bytes
+
+對應 VOC_5 / Command 5。
+
+
+24. Voice Files/6.*
+
+檔案：
+- 6.mp3：2709 bytes
+- 6.wav：18574 bytes
+- 6.RAW：25082 bytes
+- 6.raw2：25082 bytes
+- 6.PCM：25082 bytes
+- 6.COD：18455 bytes
+- 6.FREQ.TXT：520 bytes
+
+對應 VOC_6 / Command 6。
+
+
+25. Voice Files/7.*
+
+檔案：
+- 7.mp3：3179 bytes
+- 7.wav：22030 bytes
+- 7.RAW：29980 bytes
+- 7.raw2：29980 bytes
+- 7.PCM：29980 bytes
+- 7.COD：21551 bytes
+- 7.FREQ.TXT：520 bytes
+
+對應 VOC_7 / Command 7。
+
+
+26. Voice Files/8.*
+
+檔案：
+- 8.mp3：2866 bytes
+- 8.wav：19726 bytes
+- 8.RAW：26714 bytes
+- 8.raw2：26714 bytes
+- 8.PCM：26714 bytes
+- 8.COD：17633 bytes
+- 8.FREQ.TXT：520 bytes
+
+對應 VOC_8 / Command 8。
+
+
+27. Voice Files/9.*
+
+檔案：
+- 9.mp3：3493 bytes
+- 9.wav：24334 bytes
+- 9.RAW：33244 bytes
+- 9.raw2：33244 bytes
+- 9.PCM：33244 bytes
+- 9.COD：23726 bytes
+- 9.FREQ.TXT：520 bytes
+
+對應 VOC_9 / Command 9。
+
+
+28. Voice Files/坋.*
+
+檔案：
+- 坋.mp3：3023 bytes
+- 坋.wav：20878 bytes
+- 坋.RAW：28346 bytes
+- 坋.raw2：28346 bytes
+- 坋.PCM：28346 bytes
+- 坋.COD：20534 bytes
+- 坋.FREQ.TXT：520 bytes
+
+對應 VOC_10 / Command 10。
+Setting.ini 與 VoiceBroadcast.ini 顯示這組原本應為「十.mp3 / 十.wav」，目前顯示成「坋」推測是中文檔名編碼問題。
+
+
+29. Voice Files/Option1.ini
+
+行數：11
+大小：168 bytes
+
+內容顯示：
+- MAX=1
+- SYSCLK=16
+- FILE ="十.wav",P,H,0,2
+
+用途推測：
+- VoiceBroadcast 轉檔工具針對第 10 個語音/中文「十.wav」的處理設定。
+
+
+八、Voice Files/output 輸出 WAV
+
+output 資料夾共有 10 個 wav，像是工具轉換後的輸出音檔。
+
+30. Voice Files/output/1.wav
+- 大小：23492 bytes
+
+31. Voice Files/output/2.wav
+- 大小：16962 bytes
+
+32. Voice Files/output/3.wav
+- 大小：28390 bytes
+
+33. Voice Files/output/4.wav
+- 大小：28390 bytes
+
+34. Voice Files/output/5.wav
+- 大小：36554 bytes
+
+35. Voice Files/output/6.wav
+- 大小：25126 bytes
+
+36. Voice Files/output/7.wav
+- 大小：30024 bytes
+
+37. Voice Files/output/8.wav
+- 大小：26758 bytes
+
+38. Voice Files/output/9.wav
+- 大小：33288 bytes
+
+39. Voice Files/output/坋.wav
+- 大小：28390 bytes
+- 同樣推測是「十.wav」的編碼顯示問題。
+
+
+九、整體使用方式
+
+最基本播放流程：
+
+1. include library 與 voice list
+   #include "BMV31T001.h"
+   #include "voice_cmd_list.h"
+
+2. 建立物件
+   BMV31T001 myBMV31T001;
+
+3. 初始化與開電
+   myBMV31T001.begin();
+   myBMV31T001.setPower(BMV31T001_POWER_ENABLE);
+
+4. 設定音量
+   myBMV31T001.setVolume(6);
+
+5. 播放指定語音
+   myBMV31T001.playVoice(VOC_1);
+
+6. 停止/暫停/繼續
+   myBMV31T001.playStop();
+   myBMV31T001.playPause();
+   myBMV31T001.playContinue();
+
+7. 判斷是否播放中
+   if (myBMV31T001.isPlaying() == BMV31T001_BUSY) { ... }
+
+8. 若要允許語音更新
+   myBMV31T001.initAudioUpdate();
+   if (myBMV31T001.isUpdateBegin() == BMV31T001_UPDATA_BEGIN) {
+     myBMV31T001.executeUpdate();
+   }
+
+
+十、所有檔案清單與用途簡表
+
+README.md
+- 官方 README，說明 BMV31T001 library 功能、安裝與版本。
+
+LICENSE.md
+- BSD 3-Clause License。
+
+library.properties
+- Arduino library metadata。
+
+keywords.txt
+- Arduino IDE 語法上色設定。
+
+src/BMV31T001.h
+- BMV31T001 class、常數、公開 API、private update/SPI flash helper 宣告。
+
+src/BMV31T001.cpp
+- 單線播放控制、按鍵掃描、LED/Power、播放狀態、語音更新、SPI flash 操作實作。
+
+examples/voiceUpdateAndPlayback/voiceUpdateAndPlayback.ino
+- 官方範例：語音更新、按鍵控制播放、音量調整、LED 狀態。
+
+examples/voiceUpdateAndPlayback/voice_cmd_list.h
+- 範例使用的 VOC_1 到 VOC_10 定義。
+
+examples/voiceUpdateAndPlayback/layout.PNG
+- 範例接線 layout 圖。
+
+examples/voiceUpdateAndPlayback/schematic.PNG
+- 範例電路 schematic 圖。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/Demo_key_mapping.h
+- VoiceBroadcast 產生的 key mapping header，目前 COMMANDABLE_NUM=0。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/PrjSetting.ini
+- VoiceBroadcast 專案進度狀態，Progress=100。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/set.ini
+- VoiceBroadcast 工具設定，最大 voice index 為 9，代表 10 個 voice。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/Setting.ini
+- 10 個 voice 的名稱、command、壓縮格式、大小與長度。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/VoiceBroadcast.ini
+- 專案主要設定，包含 IC、flash size、10 個 voice 對應 VOC_1 到 VOC_10。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/VoiceBroadcast.vup
+- VoiceBroadcast 專案識別檔。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/VoiceBroadcast.dat
+- 約 2 MB 的語音/flash image 二進位資料。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/voice_cmd_list.h
+- VoiceBroadcast 產生的 VOC_1 到 VOC_10 定義。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/Voice Files/1.* 到 9.*
+- 每個編號一組語音素材與轉換中間檔：mp3、wav、RAW、raw2、PCM、COD、FREQ.TXT。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/Voice Files/坋.*
+- 第 10 組語音；設定檔顯示原本應為「十」，目前檔名顯示可能因編碼變成「坋」。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/Voice Files/Option1.ini
+- 第 10 組「十.wav」的轉檔/波形設定。
+
+examples/voiceUpdateAndPlayback/VoiceBroadcast/Voice Files/output/*.wav
+- 10 個工具輸出的 wav 檔。
+
+
+十一、建議整理事項
+
+1. 確認第 10 組語音檔名是否應為「十」而不是「坋」，若要跨平台使用，建議改成 10.mp3/10.wav/10.COD 等 ASCII 檔名。
+2. 將 source 註解統一轉成 UTF-8，避免亂碼。
+3. 若專案只要播放已燒錄語音，不需要保留全部 VoiceBroadcast 中間檔；至少需要 library source、voice_cmd_list.h 與 Arduino sketch。
+4. 若要重新產生語音或更新模組，需保留 VoiceBroadcast.dat、VoiceBroadcast.ini、Setting.ini、Voice Files 與 output。
+5. BMV31T001.cpp 的硬體 pin 是固定值；若要和其他專案整合，建議改成 constructor 可設定 pin，或建立包裝層集中管理腳位。
+6. 與 BMC81M001 的 TCP.ino 整合時，通常只會用 begin、setPower、setVolume、initAudioUpdate、playVoice 這幾個 API。

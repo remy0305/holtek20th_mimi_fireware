@@ -1,0 +1,55 @@
+###################################################
+# Syntax Coloring Map For (BMV31T001)
+###################################################
+
+###################################################
+# Datatypes (KEYWORD1)
+###################################################
+BMV31T001	KEYWORD1
+
+###################################################
+# Methods and Functions (KEYWORD2)
+###################################################
+begin	KEYWORD2
+reset	KEYWORD2
+setVolume	KEYWORD2
+playVoice	KEYWORD2
+playSentence	KEYWORD2
+playStop	KEYWORD2
+playPause	KEYWORD2
+playContinue	KEYWORD2
+playRepeat	KEYWORD2
+isPlaying	KEYWORD2
+scanKey	KEYWORD2		
+isKeyAction	KEYWORD2
+readKeyValue	KEYWORD2
+setPower	KEYWORD2
+setLED	KEYWORD2
+initAudioUpdate	KEYWORD2
+isUpdateBegin	KEYWORD2
+executeUpdate	KEYWORD2
+
+###################################################
+# Constants (LITERAL1)
+###################################################
+BMV31T001_KEY_MIDDLE	LITERAL1
+BMV31T001_KEY_UP	LITERAL1
+BMV31T001_KEY_DOWN	LITERAL1
+BMV31T001_KEY_LEFT	LITERAL1
+BMV31T001_KEY_RIGHT	LITERAL1
+BMV31T001_LED_ON	LITERAL1
+BMV31T001_LED_OFF	LITERAL1
+BMV31T001_BUSY	LITERAL1
+BMV31T001_NOBUSY	LITERAL1
+BMV31T001_POWER_ENABLE	LITERAL1
+BMV31T001_POWER_DISABLE	LITERAL1
+BMV31T001_UPDATA_BEGIN	LITERAL1
+BMV31T001_NO_KEY	LITERAL1
+BMV31T001_VOLUME_MAX	LITERAL1
+BMV31T001_VOLUME_MIN	LITERAL1	
+
+
+
+
+
+

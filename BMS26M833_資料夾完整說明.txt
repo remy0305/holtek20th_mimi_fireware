@@ -1,0 +1,631 @@
+BMS26M833 資料夾完整說明
+掃描日期：2026-04-22
+
+一、總覽
+
+本資料夾實際 library 根目錄為：
+BMS26M833/BMS26M833
+
+這是一個 Arduino library，主要用途是透過 I2C 操作 BMS26M833 紅外線熱電堆陣列模組。它可讀取 8 x 8 共 64 點溫度矩陣、讀取 thermistor 溫度、設定中斷門檻，並提供範例將 8 x 8 溫度資料轉成 TFT 熱影像。
+
+資料夾內共有 18 個檔案：
+- 1 個 Arduino library metadata：library.properties
+- 1 個 Arduino IDE 關鍵字設定：keywords.txt
+- 2 個 library 原始碼：BMS26M833.h、BMS26M833.cpp
+- 3 個範例 sketch：readTemperature、setInterrupt、DisplayThermalImagingOnTheTFT
+- 3 個熱影像/TFT 輔助程式檔：InfraredThermalImaging.c、InfraredThermalImaging.h、lcdfont.h
+- 6 張範例圖片：layout.png、schematic.png
+- 2 個 Windows 縮圖快取：Thumbs.db
+
+注意：
+- 多處註解中的攝氏度符號與中文歷史字串在目前讀取環境下顯示成亂碼，推測是原始編碼或特殊符號造成。程式邏輯本身可正常判讀。
+- 此 library 需要 Arduino Wire/I2C。
+- DisplayThermalImagingOnTheTFT 範例額外依賴 BMD58T280 TFT library、SPI，以及特定 BMduino/UNO 接線條件。
+
+
+二、資料夾結構
+
+BMS26M833/BMS26M833/
+- keywords.txt
+- library.properties
+- src/
+  - BMS26M833.h
+  - BMS26M833.cpp
+- examples/
+  - readTemperature/
+    - readTemperature.ino
+    - layout.png
+    - schematic.png
+    - Thumbs.db
+  - setInterrupt/
+    - setInterrupt.ino
+    - layout.png
+    - schematic.png
+  - DisplayThermalImagingOnTheTFT/
+    - DisplayThermalImagingOnTheTFT.ino
+    - InfraredThermalImaging.c
+    - InfraredThermalImaging.h
+    - lcdfont.h
+    - layout.png
+    - schematic.png
+    - Thumbs.db
+
+
+三、Library metadata 與 Arduino IDE 設定
+
+1. library.properties
+
+行數：10
+大小：466 bytes
+
+Arduino Library Manager 使用的套件資訊。
+內容定義：
+- library 名稱：BMS26M833
+- 版本：1.0.1
+- 作者：BESTMODULES
+- 維護者：BESTMODULES <service@bestmodulescorp.com>
+- 類別：Sensors
+- 支援架構：*
+- URL：https://www.bestmodulescorp.com/
+
+此檔案只描述套件，不包含程式邏輯。
+
+
+2. keywords.txt
+
+行數：73
+大小：1838 bytes
+
+Arduino IDE 語法上色用的關鍵字設定。
+它將 BMS26M833 class、method 與常數標記成 KEYWORD1、KEYWORD2、LITERAL1。
+
+主要 method：
+- begin
+- writeReg
+- readReg
+- readPixels
+- readPixelsAndMaximum
+- getINTTable
+- getOperationMode
+- sleep
+- reset
+- getFrameMode
+- getINT
+- getStatus
+- getAverageOutputMode
+- readThermistorTemp
+- beginMeasure
+- setFrameMode
+- setINT
+- setInterruptLevels
+- setStatusClear
+- setAverageOutputMode
+- setOperationMode
+
+主要常數：
+- BMS26M833_IICADDR
+- REG_PCTL、REG_RST、REG_FPSC、REG_INTC、REG_STAT、REG_SCLR、REG_AVE
+- REG_INTHL、REG_INTHH、REG_INTLL、REG_INTLH、REG_IHYSL、REG_IHYSH
+- REG_TTHL、REG_TTHH、REG_T01L、REG_T17L、REG_T33L、REG_T49L
+- NORMAL_MODE、SLEEP_MODE、STAND_BY_MODE_60SEC、STAND_BY_MODE_10SEC
+- FLAG_RESET、INITIAL_RESET、FPS_1、FPS_10
+- OVT_CLR、OVS_CLR、INTCLR
+- TWICE_MOVE_AVE_OUTPUT、ONE_MOVE_OUTPUT
+- ENABLE、DISABLE
+
+
+四、核心 Library 原始碼
+
+3. src/BMS26M833.h
+
+行數：117
+大小：3933 bytes
+
+Library 的 class 宣告、I2C 位址、register address 與模式常數。
+
+主要內容：
+- include Wire.h 與 Arduino.h。
+- 預設 I2C address：
+  BMS26M833_IICADDR = 0x68，註解指出 AD_SELECT to low。
+  另一個 0x69 位址被註解，代表 AD_SELECT to high。
+- 模式常數：
+  NORMAL_MODE、SLEEP_MODE、STAND_BY_MODE_60SEC、STAND_BY_MODE_10SEC。
+- reset 常數：
+  FLAG_RESET、INITIAL_RESET。
+- FPS 常數：
+  FPS_1、FPS_10。
+- 中斷/狀態清除常數：
+  OVT_CLR、OVS_CLR、INTCLR。
+- 平均輸出模式：
+  TWICE_MOVE_AVE_OUTPUT、ONE_MOVE_OUTPUT。
+- register map：
+  REG_PCTL 到 REG_T49L。
+
+BMS26M833 class 對外提供：
+- float pixels[64]
+- BMS26M833(uint8_t intPin = 8, TwoWire *theWire = &Wire)
+- begin(uint8_t i2c_addr = BMS26M833_IICADDR)
+- writeReg、readReg
+- readPixels
+- readPixelsAndMaximum
+- getINTTable
+- getOperationMode
+- sleep
+- reset
+- getFrameMode
+- getINT
+- getStatus
+- getAverageOutputMode
+- readThermistorTemp
+- beginMeasure
+- setFrameMode
+- setINT
+- setInterruptLevels
+- setStatusClear
+- setAverageOutputMode
+- setOperationMode
+
+private helper：
+- clearBuf
+- writeBytes
+- writeRegBit
+- readBytes
+- readRawThermistorTemp
+- convertIntToUint16
+- convertFloatToSigned12
+
+
+4. src/BMS26M833.cpp
+
+行數：530
+大小：18005 bytes
+
+Library 的主要實作檔，透過 Wire/I2C 讀寫 BMS26M833 暫存器並換算溫度。
+
+主要功能分類：
+
+A. 全域資料
+- dataBuff[128]：讀寫 I2C 資料的暫存陣列。
+- DataCnt：宣告但掃描中未見實際使用。
+- extern float TempMax, TempMin：供 DisplayThermalImagingOnTheTFT/InfraredThermalImaging 相關範例共用最大/最小溫度。
+
+B. 建構與初始化
+- BMS26M833(intPin, theWire)
+  記錄 INT pin 與 Wire 物件。
+- begin(i2c_addr)
+  設定 INT pin 為 INPUT、初始化 Wire、進入 NORMAL_MODE、做 INITIAL_RESET、delay 1000、設定 FPS_10、關閉 interrupt。
+
+C. 基礎 I2C register 操作
+- writeReg(addr, data)
+  寫入單一 register。
+- readReg(addr)
+  讀取單一 register。
+- readReg(addr, rBuf, rLen)
+  從指定 register 連續讀多個 byte。
+- writeBytes(wbuf, wlen)
+  Wire.beginTransmission、write、endTransmission。
+- readBytes(rbuf, rlen)
+  Wire.requestFrom 後讀入指定長度。
+
+D. 讀取 8 x 8 溫度矩陣
+- readPixels(tempBuff)
+  從 REG_T01L、REG_T17L、REG_T33L、REG_T49L 分四段各讀 32 bytes，共 128 bytes，轉成 64 個溫度值。
+  每個 pixel 由 low/high byte 組成，乘以 0.25 作為溫度解析度。
+- readPixelsAndMaximum(tempBuff, maxValue, minValue)
+  與 readPixels 類似，但同時計算最大與最小溫度。
+
+E. Thermistor 溫度
+- readThermistorTemp()
+  讀 REG_TTHL/REG_TTHH，將 12-bit signed value 轉成溫度，解析度 0.0625。
+- readRawThermistorTemp()
+  回傳 thermistor raw data。
+
+F. Interrupt
+- setINT(isEnable)
+  true 時寫 REG_INTC = 0xff 啟用中斷，false 時寫 0x00 關閉。
+- setInterruptLevels(high, low)
+  hysteresis 預設為 high * 0.95。
+- setInterruptLevels(high, low, hysteresis)
+  將 high/low/hysteresis 轉成 signed 12-bit 格式後寫入 interrupt level registers。
+- getINT()
+  digitalRead(_intpin)，註解說 0 表示收到 interrupt。
+- getINTTable(buf, size)
+  從 0x10 開始讀 interrupt table，預設 8 bytes。
+- setStatusClear()
+  呼叫 reset(FLAG_RESET) 清除 interrupt/status。
+
+G. 模組狀態與模式
+- getOperationMode()
+- sleep()
+- reset(mode)
+- getFrameMode()
+- getStatus()
+- getAverageOutputMode()
+- beginMeasure(mode)
+- setFrameMode(mode)
+- setAverageOutputMode(mode)
+- setOperationMode(mode)
+
+掃描時看到的程式注意事項：
+- getOperationMode()、getFrameMode()、getStatus()、getAverageOutputMode() 呼叫 readReg(REG_xxx)，但接著讀 dataBuff[0]。readReg(addr) 本身會回傳讀值，雖然目前 readReg() 也會更新 dataBuff[0]，但寫法容易讓人誤解。
+- readPixels() 直接把 raw data 轉 uint16_t 再乘 0.25，沒有像 thermistor 那樣處理 signed extension。若 sensor pixel 溫度可能出現負值，需確認 datasheet 是否允許這種解法。
+- DataCnt 全域變數目前未見使用。
+- setAverageOutputMode() 會連續寫 0x1f 特殊序列 0x50、0x45、0x57，再改 REG_AVE，推測是解鎖 hidden/protected register 的程序；這段應保留但需要文件註解。
+
+
+五、readTemperature 範例
+
+5. examples/readTemperature/readTemperature.ino
+
+行數：36
+大小：1054 bytes
+
+最基本的讀溫度範例。
+
+setup():
+- Amg.begin()
+- Serial.begin(9600)
+- 印出標題
+
+loop():
+- Amg.readPixels(TempMat)
+- temp = Amg.readThermistorTemp()
+- 印出 thermistor 溫度
+- 依 8 x 8 格式印出 64 個 pixel 溫度，每 8 個換行
+- delay(500)
+
+此範例適合驗證：
+- I2C 接線是否正確
+- BMS26M833 是否能讀到 64 點溫度
+- thermistor 是否有合理讀值
+
+
+6. examples/readTemperature/layout.png
+
+大小：233427 bytes
+尺寸：661 x 302
+
+readTemperature 範例接線 layout 圖。
+二進位圖片，不含程式邏輯。
+
+
+7. examples/readTemperature/schematic.png
+
+大小：43953 bytes
+尺寸：1065 x 612
+
+readTemperature 範例電路 schematic 圖。
+二進位圖片，不含程式邏輯。
+
+
+8. examples/readTemperature/Thumbs.db
+
+大小：38912 bytes
+
+Windows Explorer 自動產生的縮圖快取檔。
+不是 Arduino 專案必要檔案，可刪除或加入 .gitignore。
+
+
+六、setInterrupt 範例
+
+9. examples/setInterrupt/setInterrupt.ino
+
+行數：60
+大小：2154 bytes
+
+示範如何使用 BMS26M833 的 interrupt 功能。
+
+主要設定：
+- TEMP_INT_HIGH = 30
+- TEMP_INT_LOW = 15
+- BMS26M833 Amg
+- interruptTable[8]
+
+setup():
+- Serial.begin(9600)
+- Amg.begin()
+- Amg.setInterruptLevels(TEMP_INT_HIGH, TEMP_INT_LOW)
+- Amg.setINT(true)
+
+loop():
+- 如果 Amg.getINT() == 0，代表收到 interrupt。
+- 呼叫 Amg.getINTTable(interruptTable) 讀出 8 bytes interrupt table。
+- 逐 bit 印出哪些 pixel 觸發中斷。
+- 呼叫 Amg.setStatusClear() 清除中斷，準備下一次觸發。
+
+用途：
+- 設定高/低溫門檻。
+- 找出 8 x 8 中哪些 pixel 超過高門檻或低於低門檻。
+
+
+10. examples/setInterrupt/layout.png
+
+大小：233427 bytes
+尺寸：661 x 302
+
+setInterrupt 範例接線 layout 圖。
+二進位圖片，不含程式邏輯。
+
+
+11. examples/setInterrupt/schematic.png
+
+大小：43953 bytes
+尺寸：1065 x 612
+
+setInterrupt 範例電路 schematic 圖。
+二進位圖片，不含程式邏輯。
+
+
+七、DisplayThermalImagingOnTheTFT 範例
+
+12. examples/DisplayThermalImagingOnTheTFT/DisplayThermalImagingOnTheTFT.ino
+
+行數：199
+大小：8153 bytes
+
+這是最完整的範例，用 BMS26M833 讀 8 x 8 溫度矩陣，再透過演算法轉成較大的熱影像，顯示在 BMD58T280 TFT 螢幕上。
+
+依賴：
+- SPI.h
+- BMD58T280.h
+- lcdfont.h
+- BMS26M833.h
+- InfraredThermalImaging.h
+
+重要參數：
+- OutMatWidth = 55
+- OutMatHeight = 55
+- Magnification = 3
+- TempDiffConfig = 4
+- BackgroundConfig = 20
+- ColorBarConfig = Rainbow2_65K
+
+硬體物件：
+- BMD58T280 TFTscreen
+- BMS26M833 amg(22, &Wire1)
+
+注意：
+- 對非 UNO 的 BMduino，預設使用 BMD58T280 TFTscreen 並搭配 Wire1。
+- UNO 分支使用 BMD58T280 TFTscreen(&SPI)。
+- amg(22, &Wire1) 代表 INT pin 使用 22，I2C 使用 Wire1。若板子沒有 Wire1 或 pin 22，需修改。
+
+setup():
+- Serial.begin(9600)
+- TFTscreen.begin()
+- TFTscreen.setRotation(1)
+- amg.begin()
+- LCDShowColorbar()
+- 設定 thermal imaging config：
+  InWidth/InHeight = 8 x 8
+  OutWidth/OutHeight = 55 x 55
+  InMat = TempMat
+  OutMat = DataBuf
+  Background = 20
+  TempDiff = 4
+
+loop():
+- amg.readPixelsAndMaximum(TempMat, TempMax, TempMin)
+- 若 TempMin > 0 且 TempMax < 80：
+  - InfraredThermalImaging(&ThermImaConfig)
+  - LCDShow(...) 顯示熱影像
+- 否則：
+  - 顯示空/零值畫面並 delay(30)
+
+LCDShow():
+- 顯示最大/最小溫度。
+- 若 Max-Min <= TempDiff，只顯示最低階色彩。
+- 否則依 DataBuf 灰階值查 ColorBarConfig 色表，寫入 TFT。
+- Mul 參數控制放大倍率。
+
+LCD_ShowFloatNum1():
+- 在 TFT 指定座標顯示浮點數。
+
+LCDShowColorbar():
+- 清黑底。
+- 顯示 MAX/MIN 文字。
+- 顯示 BMS26M833 標題。
+- 顯示 tempLogo、BMLogo。
+- 繪製左側 color bar。
+
+
+13. examples/DisplayThermalImagingOnTheTFT/InfraredThermalImaging.h
+
+行數：33
+大小：1321 bytes
+
+熱影像處理演算法的 header。
+
+定義 ThermalImagingConfig struct：
+- float *InMat：輸入溫度矩陣。
+- uint8_t *OutMat：輸出灰階矩陣。
+- uint8_t InWidth/InHeight：輸入寬高。
+- uint8_t OutWidth/OutHeight：輸出寬高。
+- uint8_t Background：背景濾除程度。
+- uint8_t TempDiff：最低溫差門檻。
+
+宣告函式：
+- InfraredThermalImaging
+- Bilinear
+- TransformGray
+- Otus
+- BackgroundFiltering
+
+
+14. examples/DisplayThermalImagingOnTheTFT/InfraredThermalImaging.c
+
+行數：228
+大小：8570 bytes
+
+熱影像轉換演算法實作。
+
+主要流程：
+1. TransformGray()
+   將 8 x 8 float 溫度矩陣依 TempMax/TempMin 正規化成 0-255 灰階。
+2. 若 TempMax - TempMin 小於等於 TempDiff，直接不處理。
+3. Otus()
+   使用 Otsu/最大類間變異法找背景與目標的分割門檻。
+4. BackgroundFiltering()
+   依門檻與 Background 參數移除背景。
+5. Bilinear()
+   用雙線性插值將 8 x 8 放大到指定輸出尺寸，例如 55 x 55。
+
+主要函式：
+- InfraredThermalImaging(ThermalImagingConfig *Config)
+- Bilinear(...)
+- TransformGray(...)
+- BackgroundFiltering(...)
+- Otus(...)
+
+注意：
+- 檔案中函式註解寫 Otus，實際常見名稱是 Otsu。
+- 使用 extern float TempMax, TempMin，與 DisplayThermalImagingOnTheTFT.ino 的全域變數耦合。
+
+
+15. examples/DisplayThermalImagingOnTheTFT/lcdfont.h
+
+行數：3756
+大小：297195 bytes
+
+TFT 顯示用的大型字型/圖示/色表資料檔。
+
+主要內容：
+- gImage_tempLogo：溫度圖示。
+- gImage_BMLogo：Best Modules logo。
+- PseudoColor1_65K[256]
+- PseudoColor2_65K[256]
+- MetalColor1_65K[256]
+- MetalColor2_65K[256]
+- Rainbow1_65K[256]
+- Rainbow2_65K[256]
+- HoltekLogo[10320]
+- Image1[44160]
+
+用途：
+- DisplayThermalImagingOnTheTFT.ino 使用 Rainbow2_65K 作為熱影像色表。
+- LCDShowColorbar() 使用 gImage_tempLogo、gImage_BMLogo。
+
+此檔幾乎全是大型常數陣列，不含主要控制流程。
+
+
+16. examples/DisplayThermalImagingOnTheTFT/layout.png
+
+大小：160407 bytes
+尺寸：869 x 348
+
+DisplayThermalImagingOnTheTFT 範例接線 layout 圖。
+二進位圖片，不含程式邏輯。
+
+
+17. examples/DisplayThermalImagingOnTheTFT/schematic.png
+
+大小：43953 bytes
+尺寸：1065 x 612
+
+DisplayThermalImagingOnTheTFT 範例電路 schematic 圖。
+二進位圖片，不含程式邏輯。
+
+
+18. examples/DisplayThermalImagingOnTheTFT/Thumbs.db
+
+大小：12288 bytes
+
+Windows Explorer 自動產生的縮圖快取檔。
+不是 Arduino 專案必要檔案，可刪除或加入 .gitignore。
+
+
+八、整體 API 使用方式
+
+最基本讀取：
+
+1. 建立物件
+   BMS26M833 Amg;
+
+2. 初始化
+   Amg.begin();
+
+3. 讀取 64 點溫度
+   float TempMat[64];
+   Amg.readPixels(TempMat);
+
+4. 讀取 thermistor
+   float temp = Amg.readThermistorTemp();
+
+5. 若需要最大/最小值
+   float maxTemp, minTemp;
+   Amg.readPixelsAndMaximum(TempMat, maxTemp, minTemp);
+
+6. 若需要 interrupt
+   Amg.setInterruptLevels(30, 15);
+   Amg.setINT(true);
+   if (Amg.getINT() == 0) {
+     uint8_t table[8];
+     Amg.getINTTable(table);
+     Amg.setStatusClear();
+   }
+
+
+九、所有檔案清單與用途簡表
+
+keywords.txt
+- Arduino IDE 語法上色設定。
+
+library.properties
+- Arduino library 套件資訊。
+
+src/BMS26M833.h
+- class 宣告、register map、常數與 API 介面。
+
+src/BMS26M833.cpp
+- I2C 讀寫、64 點溫度讀取、thermistor、interrupt、模式設定實作。
+
+examples/readTemperature/readTemperature.ino
+- 基本範例：讀 thermistor 與 8 x 8 溫度矩陣，印到 Serial。
+
+examples/readTemperature/layout.png
+- readTemperature 接線圖。
+
+examples/readTemperature/schematic.png
+- readTemperature 電路圖。
+
+examples/readTemperature/Thumbs.db
+- Windows 縮圖快取，非必要。
+
+examples/setInterrupt/setInterrupt.ino
+- 中斷範例：設定高/低溫門檻，印出觸發 pixel bit table。
+
+examples/setInterrupt/layout.png
+- setInterrupt 接線圖。
+
+examples/setInterrupt/schematic.png
+- setInterrupt 電路圖。
+
+examples/DisplayThermalImagingOnTheTFT/DisplayThermalImagingOnTheTFT.ino
+- TFT 熱影像範例：讀 8 x 8 溫度矩陣，轉灰階/色彩並顯示。
+
+examples/DisplayThermalImagingOnTheTFT/InfraredThermalImaging.h
+- 熱影像處理 struct 與函式宣告。
+
+examples/DisplayThermalImagingOnTheTFT/InfraredThermalImaging.c
+- 熱影像處理演算法：灰階轉換、Otsu 門檻、背景濾除、雙線性插值。
+
+examples/DisplayThermalImagingOnTheTFT/lcdfont.h
+- TFT 圖示、logo、色表與大型影像常數陣列。
+
+examples/DisplayThermalImagingOnTheTFT/layout.png
+- TFT 熱影像範例接線圖。
+
+examples/DisplayThermalImagingOnTheTFT/schematic.png
+- TFT 熱影像範例電路圖。
+
+examples/DisplayThermalImagingOnTheTFT/Thumbs.db
+- Windows 縮圖快取，非必要。
+
+
+十、建議整理事項
+
+1. 將亂碼註解或攝氏度符號統一轉成 UTF-8。
+2. 將 Thumbs.db 加入 .gitignore 或刪除。
+3. 若專案只需要讀溫度，可只保留 src 與 readTemperature 範例；TFT 熱影像範例依賴較多。
+4. DisplayThermalImagingOnTheTFT.ino 的 amg(22, &Wire1) 需要依實際板子調整。
+5. 若要整合到 BMC81M001 的 TCP.ino，通常只需要 BMS26M833.h/cpp 與 readPixels()/readThermistorTemp() 這兩個 API。
+6. 可補一份 README.md，因為此資料夾目前沒有 README，使用者只能從範例和 library.properties 理解功能。

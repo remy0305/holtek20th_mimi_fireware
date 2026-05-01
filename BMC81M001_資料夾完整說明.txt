@@ -1,0 +1,739 @@
+BMC81M001 Arduino library V1.0.5 資料夾完整說明
+掃描日期：2026-04-22
+
+一、總覽
+
+本資料夾實際名稱為「BMC81M001 Arduino library V1.0.5」，不是小寫的 bmc81m001。
+它是一個 Arduino library，核心用途是讓 Arduino 透過 UART 與 BMC81M001 WiFi 模組通訊，並用 AT command 包裝 WiFi 連線、TCP、MQTT、HTTP GET、模組狀態查詢等功能。
+
+資料夾內共有 26 個檔案：
+- 1 個 Arduino library metadata：library.properties
+- 2 個文件：README.md、LICENSE.md
+- 1 個 Arduino IDE 關鍵字設定：keywords.txt
+- 2 個 library 原始碼：BMC81M001.h、BMC81M001.cpp
+- 1 個主要 Arduino 範例：TCP.ino
+- 2 個範例輔助 header：TCP.h、voice_cmd_list.h
+- 14 個歷史版本/實驗記錄程式：examples/TCP/記錄/*.cpp
+- 2 個圖片：layout.png、schematic.png
+- 1 個 Windows 縮圖快取：Thumbs.db
+
+注意：
+- examples/TCP/TCP.h 內含 WiFi SSID、WiFi 密碼、TCP Server IP 與 Port，若要公開或交給別人，建議先移除或改成占位文字。
+- 多個 .ino/.cpp 檔案中的中文註解在目前讀取環境下出現亂碼，推測可能是原始檔案編碼與 PowerShell 顯示/讀取編碼不一致。程式邏輯仍可由英文符號、函式與常數判讀。
+- 本說明是靜態掃描與閱讀結果，未進行 Arduino 編譯或硬體實測。
+
+
+二、資料夾結構
+
+BMC81M001 Arduino library V1.0.5/
+- library.properties
+- BMC81M001/
+  - README.md
+  - LICENSE.md
+  - keywords.txt
+  - src/
+    - BMC81M001.h
+    - BMC81M001.cpp
+  - examples/
+    - TCP/
+      - TCP.ino
+      - TCP.h
+      - voice_cmd_list.h
+      - layout.png
+      - schematic.png
+      - Thumbs.db
+      - 記錄/
+        - 1125demo.cpp
+        - 1204.cpp
+        - 1204_2.cpp
+        - 1208.cpp
+        - 1209_1.cpp
+        - 1209_2.cpp
+        - 1209_3.cpp
+        - 1210_1.cpp
+        - 1210_2.CPP
+        - 1215_2.cpp
+        - 1216_1.cpp
+        - 1216_2.cpp
+        - 1217_1.cpp
+        - 1218_1.cpp
+
+
+三、核心 Library 檔案
+
+1. library.properties
+
+行數：9
+大小：409 bytes
+
+Arduino Library Manager 使用的套件資訊檔。
+內容定義：
+- library 名稱：BMC81M001
+- 版本：1.0.5
+- 作者/維護者：BEST MODULES CORP.
+- 類別：Communication
+- 支援架構：*
+- GitHub URL：https://github.com/BestModules-Libraries/BMC81M001
+
+這個檔案不含程式邏輯，只是讓 Arduino IDE/Library Manager 能辨識與安裝此 library。
+
+
+2. BMC81M001/README.md
+
+行數：57
+大小：2431 bytes
+
+Library 的官方說明文件。
+重點：
+- BMC81M001 是一個 WiFi module，透過 UART 通訊。
+- Library 用來示範 TCP 與 Alibaba Cloud Platform 的資料傳輸。
+- 說明資料夾內容：examples、src、keywords.txt、library.properties。
+- 提供官方文件連結。
+- 列出版本歷史。
+
+版本 V1.0.5 的新增重點：
+- 新增基礎函式：sendATCmd、SSID、getStatus、getIP、getGateway、getMask、getMacAddress、getATVersion。
+- 新增 HTTP 函式：http_begin、http_get、http_getString、http_end。
+- 新增 HTTP GET 範例。
+- 刪除 setPublishTopic、setTopic。
+- 開放 AT command 回傳資料讓使用者透過 BMC81M001Response 操作。
+
+
+3. BMC81M001/LICENSE.md
+
+行數：28
+大小：1498 bytes
+
+授權條款檔案，使用 BSD 3-Clause License。
+重點：
+- 可使用、修改、再散布原始碼與二進位形式。
+- 再散布時需保留 copyright 與 license。
+- 不得未經書面許可用作者或貢獻者名稱背書衍生產品。
+- 軟體以 as-is 形式提供，不提供保固。
+
+
+4. BMC81M001/keywords.txt
+
+行數：59
+大小：1442 bytes
+
+Arduino IDE 語法上色用的關鍵字設定。
+它將 BMC81M001 class、常用 method、常數標記成 KEYWORD1、KEYWORD2、LITERAL1。
+
+包含的 method 關鍵字：
+- connectToAP
+- connectTCP
+- writeDataTcp
+- readDataTcp
+- configMqtt
+- setSubscribetopic
+- setTopic
+- writeString
+- writeBytes
+- readIotData
+- reset
+- sendATCommand
+- http_begin
+- http_get
+- http_getString
+- http_end
+- sendATCmd
+- SSID
+- getStatus
+- getSSID
+- getIP
+- getGateway
+- getMask
+- getMacAddress
+- getATVersion
+- BMC81M001Response
+
+注意：keywords.txt 仍列出 setTopic，但 README.md 說 V1.0.5 已刪除此功能，src/BMC81M001.h 也沒有宣告 setTopic。這是文件/關鍵字殘留不一致。
+
+
+5. BMC81M001/src/BMC81M001.h
+
+行數：108
+大小：3396 bytes
+
+Library 的 class 宣告與常數定義。
+
+主要內容：
+- include Arduino.h 與 SoftwareSerial.h。
+- 預設 baud rate：115200。
+- 定義通訊回傳碼：
+  SEND_SUCCESS、SEND_FAIL、COMMUNICAT_ERROR、AT_ACK_ERROR。
+- 定義 WiFi 狀態碼：
+  WIFI_STATUS_GOT_IP、WIFI_STATUS_CONNETED、WIFI_STATUS_DISCONNETED、WIFI_STATUS_NO_CONNET。
+- 定義 HTTP GET 回傳碼：
+  HTTP_GET_BEGIN_SUCCESS、HTTP_GET_OP_SUCCESS、HTTP_GET_URL_ERROR、HTTP_GET_OP_TIMEOUT。
+- 定義 BMC81M001Response 緩衝區大小：1000 bytes。
+
+BMC81M001 class 對外提供：
+- 建構子：可使用 HardwareSerial，也可用 rx/tx pin 建立 SoftwareSerial。
+- begin：初始化 UART。
+- WiFi/TCP：
+  connectToAP、connectTCP、writeDataTcp、readDataTcp。
+- MQTT：
+  configMqtt、setSubscribetopic、writeString、writeBytes、readIotData。
+- 模組控制：
+  reset、sendATCommand、sendATCmd。
+- HTTP：
+  http_begin、http_get、http_getString、http_end。
+- 狀態查詢：
+  SSID、getStatus、getSSID、getIP、getGateway、getMask、getMacAddress、getATVersion。
+- 公開緩衝：
+  char BMC81M001Response[RES_MAX_LENGTH]
+  int resLength
+  String OneNetReciveBuff
+
+private 區塊包含：
+- UART pin
+- HardwareSerial/SoftwareSerial 指標
+- readResponse 與 clearResponse
+- HTTP GET 需要的 host、port、type、url、suburl、len
+
+
+6. BMC81M001/src/BMC81M001.cpp
+
+行數：1086
+大小：31178 bytes
+
+Library 的主要實作檔，負責把高階函式轉成 AT command 並透過 UART 送給 BMC81M001/ESP 類型模組。
+
+主要功能分類：
+
+A. 建構與初始化
+- BMC81M001(HardwareSerial *theSerial)
+  使用硬體序列埠。
+- BMC81M001(uint16_t rxPin, uint16_t txPin)
+  建立 SoftwareSerial。
+- begin(uint32_t baud)
+  初始化硬體或軟體序列埠。
+
+B. WiFi/TCP
+- connectToAP(ssid, pass)
+  送 AT+CWMODE=1 設為 station mode，再送 AT+CWJAP 連線 AP。
+- connectTCP(ip, port)
+  送 AT+CIPSTART 建立 TCP 連線。
+- writeDataTcp(Dlength, Dbuffer)
+  先送 AT+CIPSEND=長度，再送資料內容。
+- readDataTcp()
+  讀 UART buffer，尋找 +IPD，再取冒號後面的 TCP payload。
+
+C. MQTT
+- configMqtt(clientid, username, password, mqtt_host, server_port)
+  依序設定 MQTT usercfg、clientid、username、password，最後 AT+MQTTCONN 連線。
+- setSubscribetopic(subscribetopic)
+  送 AT+MQTTSUB 訂閱 topic。
+- writeString(Dbuffer, topic)
+  送 AT+MQTTPUB 發布字串 payload。
+- writeBytes(Dbuffer, Dlength, topic)
+  送 AT+MQTTPUBRAW 發布 raw bytes。
+- readIotData(...)
+  解析 +MQTTSUBRECV，取出 topic、payload 長度與 payload。
+
+D. HTTP GET
+- http_begin(serverURL, port, subURL)
+  解析 http:// 或 https://，設定 TCP/SSL、host、port、path 與 request 長度。
+- http_get()
+  建立連線、送 GET request、讀回 HTTP response body。
+- http_getString()
+  將 BMC81M001Response 轉成 String。
+- http_end()
+  送 AT+CIPCLOSE 關閉連線。
+
+E. 基本 AT command 與狀態查詢
+- reset()
+  送 AT+RST。
+- sendATCommand(...)
+  送 AT command，等待回覆包含 OK。
+- sendATCmd(...)
+  類似 sendATCommand，但回傳完整 ACK 字串或 TimeOut。
+- SSID()
+  送 AT+CWLAP 掃描附近 WiFi。
+- getStatus()
+  送 AT+CIPSTATUS 並解析狀態碼。
+- getSSID()
+  送 AT+CWJAP? 取得目前連線 SSID。
+- getIP()/getGateway()/getMask()
+  送 AT+CIPSTA? 並用 strtok 解析 IP/Gateway/Mask。
+- getMacAddress()
+  送 AT+CIPSTAMAC?，解析並轉成大寫 MAC 字串。
+- getATVersion()
+  送 AT+GMR，取版本字串。
+
+F. Buffer 操作
+- readResponse()
+  從 Serial 或 SoftwareSerial 讀入 BMC81M001Response。
+- clearResponse()
+  清空回應 buffer 並重設 resLength。
+
+掃描時看到的程式注意事項：
+- http_get() 內部計算了 result，但最後固定 return HTTP_GET_OP_SUCCESS，代表 timeout 或 COMMUNICAT_ERROR 可能不會正確回傳給呼叫端。
+- http_get() 的接收 loop 直接使用 _serial->available()，如果物件是 SoftwareSerial 建立，這段可能有空指標風險。
+- sendATCommand() 裡有一行 String cmd = "AT+MQTTPUB=0,\""; 但 cmd 沒被使用，屬於殘留變數。
+- getATVersion() 使用 char sourceStr[20] 與 memcpy，但未明確補 '\0'，轉成 String 時可能有尾端資料風險。
+- 多處使用固定長度 char buffer，若 AT 回應格式變動或資料過長，要留意溢位與解析失敗。
+
+
+四、TCP 範例主程式與輔助檔
+
+7. BMC81M001/examples/TCP/TCP.h
+
+行數：38
+大小：1426 bytes
+
+TCP 範例的設定與全域變數檔。
+
+主要內容：
+- include TCP.h 自己本身，以及 BMC81M001.h。
+- WiFi 設定：
+  WIFI_SSID = "A54"
+  WIFI_PASS = "remy2271"
+- TCP Server：
+  IP = "10.81.63.61"
+  IP_Port = 8000
+- LED pin：13
+- Buffer 與狀態變數：
+  SerialBuff[200]、data[30]、resLen、nKeyBuf、DATA_BUF、tcpBuff。
+
+注意：
+- include guard 名稱為 _BMC81M001_H__，容易與 library 主 header 名稱混淆。
+- #include "TCP.h" 出現在 TCP.h 自己裡面，雖然 include guard 可避免無限遞迴，但這是不必要的自我 include。
+- WiFi 密碼是明文，不建議上傳到公開 repo。
+
+
+8. BMC81M001/examples/TCP/TCP.ino
+
+行數：411
+大小：13941 bytes
+
+目前 TCP 範例的主 Arduino sketch。內容已不只是單純 BMC81M001 TCP 範例，而是整合三個硬體模組的應用：
+- BMC81M001 WiFi module：透過 Serial 與 TCP server 通訊。
+- BMS26M833/AMG8833：讀取 8x8 熱成像陣列與 thermistor 溫度。
+- MR60FDA1 類雷達模組：透過 Serial4 讀取跌倒偵測與人體活動量封包。
+- BMV31T001 語音模組：播放警告音檔。
+
+setup() 流程：
+1. Serial 與 Serial4 設為 115200。
+2. 初始化 BMC81M001。
+3. 連接 WiFi AP。
+4. 建立 TCP 連線。
+5. 對雷達送出設定指令：
+   queryCmd、enableCmd、sensitivityCmd、fallTimeCmd、heightCmd。
+6. 初始化 AMG8833。
+7. 初始化 BMV31T001 語音模組、開電源、設定音量、初始化音源。
+8. 將 activityHistory 初始化為 100。
+
+loop() 流程：
+1. 呼叫 Wifi.readDataTcp() 接收 server 訊息。
+2. 使用 parseServerNumber() 從 server 訊息解析數字，例如 [10] 或 10。
+3. 若解析成功，更新 serverTargetSeconds，並重設活動量歷史資料。
+4. 持續從 Serial4 讀雷達封包並交給 processIncomingByte()。
+5. 讀取 AMG8833 pixels 與 thermistor 溫度。
+6. 以 TCP 傳送 THERM=xx.xx 給 server。
+7. delay 500 ms。
+
+雷達封包處理：
+- 封包 header：0x53 0x59。
+- 封包 tail：0x54 0x43。
+- processIncomingByte() 以狀態機累積封包。
+- isFallPacket() 判斷跌倒事件。
+- isBodyMovementPacket() 判斷 body movement 封包。
+
+事件行為：
+- 偵測跌倒：
+  - TCP 傳送 "1"。
+  - 播放 voice_table[0]。
+- 偵測活動量：
+  - buf[6] 作為 movementValue。
+  - 寫入 activityHistory ring buffer。
+  - 若 serverTargetSeconds > 0，檢查最近 N 筆是否連續低於 5。
+  - 若連續靜止達標，播放 voice_table[1]，TCP 傳送 "8"，重設活動量歷史。
+  - 每次活動量封包會傳送 "[7,movementValue]"。
+- parseServerNumber() 成功解析 server 指定秒數後，會 TCP 回傳 "over"。
+
+注意：
+- 此檔案與 記錄/1218_1.cpp 的大小與行數相同，判斷 TCP.ino 很可能是 1218_1.cpp 的目前正式版或複製版。
+- 目前檔案中文註解顯示有大量亂碼，建議確認原始編碼後轉成 UTF-8。
+- 這個範例依賴外部 library：BMS26M833、BMV31T001，以及可用的 Serial4 板子。一般 UNO 沒有 Serial4，需使用支援多硬體 UART 的開發板。
+
+
+9. BMC81M001/examples/TCP/voice_cmd_list.h
+
+行數：22
+大小：372 bytes
+
+語音檔編號定義。
+定義 VOC_1 到 VOC_10，對應 0x00 到 0x09。
+TCP.ino 內建立 voice_table[10]，用這些常數呼叫 myBMV31T001.playVoice(...)。
+
+
+10. BMC81M001/examples/TCP/layout.png
+
+大小：332454 bytes
+尺寸：923 x 299
+
+圖片檔。依檔名判斷是 TCP 範例的接線 layout 圖。
+此檔是二進位圖片，不含程式邏輯。
+
+
+11. BMC81M001/examples/TCP/schematic.png
+
+大小：40884 bytes
+尺寸：886 x 570
+
+圖片檔。依檔名判斷是 TCP 範例的電路 schematic 圖。
+此檔是二進位圖片，不含程式邏輯。
+
+
+12. BMC81M001/examples/TCP/Thumbs.db
+
+大小：36864 bytes
+
+Windows Explorer 自動產生的縮圖快取檔，不屬於 Arduino 專案必要檔案。
+可刪除，不會影響程式功能；若使用 git，通常應加入 .gitignore。
+
+
+五、examples/TCP/記錄 歷史版本檔案
+
+記錄資料夾內的 14 個 .cpp/.CPP 看起來是 TCP.ino 的開發歷程備份，檔名像日期或版本。它們大多都整合：
+- BMC81M001 WiFi TCP
+- BMS26M833/AMG8833 溫度讀取
+- MR60FDA1 雷達 UART 封包解析
+- BMV31T001 語音播放
+
+13. 記錄/1125demo.cpp
+
+行數：242
+大小：8117 bytes
+
+早期 demo 版本。
+主要功能：
+- 初始化 WiFi/TCP。
+- 初始化 Serial4 雷達。
+- 初始化 AMG8833。
+- 初始化 BMV31T001。
+- 偵測跌倒封包時，透過 TCP 傳送 "1"，並播放語音警告。
+- 偵測 body movement 封包時，透過 TCP 傳送活動量資料。
+- 週期性傳送 thermistor 溫度：THERM=xx.xx。
+
+此版尚未看到 server 指定秒數、連續靜止歷史矩陣等後期功能。
+
+
+14. 記錄/1204.cpp
+
+行數：254
+大小：8549 bytes
+
+延續 1125demo 的版本。
+主要功能：
+- WiFi/TCP、AMG8833、雷達、語音模組整合。
+- 保留跌倒偵測、body movement、THERM 溫度傳送。
+- 程式中出現 human presence 相關判斷條件。
+
+此版看起來開始把雷達的人體存在資料納入考慮，但尚未形成後期完整 presence/靜止時間流程。
+
+
+15. 記錄/1204_2.cpp
+
+行數：272
+大小：9263 bytes
+
+1204 的延伸版。
+新增/明顯功能：
+- isHumanExistPacket(const byte *buf, int len)
+- 在 processIncomingByte() 中判斷人體存在封包。
+- 保留跌倒偵測、body movement、溫度傳送與語音播放。
+
+此版重點是加入「人體存在封包」解析。
+
+
+16. 記錄/1208.cpp
+
+行數：305
+大小：9107 bytes
+
+開始處理 server 指令解析與雷達回應讀取。
+新增/明顯功能：
+- parseSecondValueInBracket(const String &s)
+- readRadarPacket(uint16_t timeoutMs, byte *outBuf, int &outLen)
+- 從 TCP server 收到資料後解析括號內第二個值。
+- 仍傳送 THERM=xx.xx。
+- 保留跌倒偵測與語音播放。
+
+此版重點是 server 訊息解析邏輯與讀雷達封包 helper。
+
+
+17. 記錄/1209_1.cpp
+
+行數：251
+大小：8359 bytes
+
+功能接近早期版本。
+主要功能：
+- WiFi/TCP 連線。
+- Serial4 雷達封包處理。
+- AMG8833 溫度傳送。
+- 跌倒時 TCP 傳送與語音警告。
+
+相較 1208，這版看起來比較像回到簡化流程，沒有明顯的 parseServerNumber 或歷史矩陣。
+
+
+18. 記錄/1209_2.cpp
+
+行數：281
+大小：9453 bytes
+
+加入 parseServerNumber(const String &msg)。
+主要功能：
+- 從 TCP 收到 server 訊息後解析數字。
+- 保留跌倒偵測、body movement、溫度上傳與語音播放。
+
+此版是後續 serverTargetSeconds 功能的前身。
+
+
+19. 記錄/1209_3.cpp
+
+行數：319
+大小：10696 bytes
+
+加入 serverTargetSeconds。
+主要功能：
+- parseServerNumber() 解析 server 指定秒數。
+- serverTargetSeconds 保存 server 指定時間。
+- 出現 quietSeconds 判斷，當靜止時間達標時播放語音。
+- 保留 THERM 溫度傳送、跌倒偵測與活動量封包。
+
+此版開始形成「server 指定靜止秒數，達標就警告」的功能。
+
+
+20. 記錄/1210_1.cpp
+
+行數：250
+大小：8353 bytes
+
+功能較簡化。
+主要特徵：
+- 保留跌倒偵測與語音警告。
+- THERM 溫度傳送行有被註解的跡象。
+- 沒有看到 serverTargetSeconds/parseServerNumber。
+
+此版可能是為了測試雷達/跌倒偵測而暫時關閉部分 TCP 溫度或 server 指令功能。
+
+
+21. 記錄/1210_2.CPP
+
+行數：272
+大小：9293 bytes
+
+類似 1209_3 的 server 指定秒數版本。
+主要功能：
+- parseServerNumber()
+- serverTargetSeconds
+- quietSeconds 達標判斷
+- THERM 溫度傳送
+- 跌倒偵測與語音播放
+
+副檔名為大寫 .CPP，Arduino/部分工具鏈通常仍可辨識，但在跨平台專案中建議統一成 .cpp。
+
+
+22. 記錄/1215_2.cpp
+
+行數：310
+大小：10390 bytes
+
+加入 presenceActive 與 presence 累積時間概念。
+主要功能：
+- parseServerNumber()
+- serverTargetSeconds
+- presenceActive：目前是否有人。
+- presenceStartMs/presenceAccumMs：存在時間累積。
+- isPresencePacket(const byte *buf, int len, bool &occupied)
+- occupied = (buf[6] == 0x00)，代表 0x00 判斷為有人。
+- 只有 presenceActive 時才累積或判斷靜止時間。
+
+此版重點是把「有沒有人」與「靜止/提醒」邏輯結合。
+
+
+23. 記錄/1216_1.cpp
+
+行數：368
+大小：12860 bytes
+
+加入活動量歷史矩陣。
+主要功能：
+- MAX_HISTORY_SIZE = 200
+- activityHistory[MAX_HISTORY_SIZE]
+- historyIndex/historyCount
+- serverTargetSeconds
+- 收到 server 指定秒數後，重設活動量歷史。
+- body movement 封包中的 movementValue 寫入 ring buffer。
+- 檢查最近 serverTargetSeconds 筆活動量是否連續低於 5。
+- 達標時播放 voice_table[1]。
+
+此版是目前 TCP.ino 核心靜止偵測邏輯的主要來源。
+
+
+24. 記錄/1216_2.cpp
+
+行數：403
+大小：13575 bytes
+
+1216_1 的延伸版。
+主要功能：
+- 保留 activityHistory ring buffer。
+- 從 tcpBuff 解析 server 指定秒數。
+- THERM 溫度傳送。
+- 跌倒時播放 voice_table[0]。
+- 連續低活動量達標時播放 voice_table[1]。
+- 輸出較多 Serial debug 訊息。
+
+此版已很接近目前 TCP.ino。
+
+
+25. 記錄/1217_1.cpp
+
+行數：403
+大小：13575 bytes
+
+與 1216_2 在大小與行數上完全相同，掃描出的關鍵功能也相同。
+主要功能：
+- activityHistory ring buffer。
+- serverTargetSeconds。
+- parseServerNumber()。
+- THERM 溫度傳送。
+- 跌倒與靜止警告語音。
+
+此檔可能是 1216_2 的備份或小幅修改版；若要確認細節需做逐行 diff。
+
+
+26. 記錄/1218_1.cpp
+
+行數：411
+大小：13941 bytes
+
+目前歷史記錄中最新、也最接近 examples/TCP/TCP.ino 的版本。
+主要功能：
+- MAX_HISTORY_SIZE = 200。
+- activityHistory ring buffer。
+- serverTargetSeconds。
+- parseServerNumber() 解析 [N] 或 N。
+- 解析成功後 TCP 回傳 "over"。
+- 跌倒封包：TCP 傳 "1"，播放 voice_table[0]。
+- body movement 封包：更新歷史資料，傳送 "[7,movementValue]"。
+- 連續低活動量達 serverTargetSeconds：播放 voice_table[1]，TCP 傳 "8"，重設歷史資料。
+- 每 500 ms 讀 AMG8833 並傳送 THERM=xx.xx。
+
+此檔很可能是 TCP.ino 的來源或同版備份。
+
+
+六、目前應用程式的整體功能判讀
+
+從 TCP.ino 與記錄資料夾可看出，這個專案目前已經從單純 BMC81M001 WiFi library 範例，演變成一個「跌倒/靜止偵測 + 溫度上傳 + TCP server 控制 + 語音提醒」的整合應用。
+
+資料流大致如下：
+
+1. Arduino 開機後連 WiFi。
+2. 連到 TCP Server：10.81.63.61:8000。
+3. 對雷達模組送設定指令，啟用跌倒偵測、設定靈敏度、跌倒時間、高度。
+4. 讀雷達 Serial4 封包。
+5. 如果是跌倒封包：
+   - 傳 "1" 給 server。
+   - 播放第 1 個語音。
+6. 如果是活動量封包：
+   - 取 buf[6] 當 movementValue。
+   - 傳 "[7,movementValue]" 給 server。
+   - 存入最近 200 筆歷史。
+   - 如果 server 指定 N 秒，且最近 N 筆都低於 5，視為長時間靜止。
+   - 長時間靜止時播放第 2 個語音並傳 "8" 給 server。
+7. 讀 AMG8833 thermistor。
+8. 傳 "THERM=xx.xx" 給 server。
+9. 若 server 傳來 N 或 [N]：
+   - 解析成 serverTargetSeconds。
+   - 重設活動量歷史。
+   - 回傳 "over" 表示收到設定。
+
+
+七、所有檔案清單與用途簡表
+
+library.properties
+- Arduino library 套件資訊。
+
+BMC81M001/README.md
+- 官方 README、安裝說明、版本歷史。
+
+BMC81M001/LICENSE.md
+- BSD 3-Clause License。
+
+BMC81M001/keywords.txt
+- Arduino IDE 語法上色設定。
+
+BMC81M001/src/BMC81M001.h
+- BMC81M001 class 宣告、常數、API 介面。
+
+BMC81M001/src/BMC81M001.cpp
+- BMC81M001 class 實作，處理 UART/AT command/TCP/MQTT/HTTP。
+
+BMC81M001/examples/TCP/TCP.h
+- TCP 範例的 WiFi、server、buffer 與全域變數設定。
+
+BMC81M001/examples/TCP/TCP.ino
+- 目前主範例；整合 WiFi TCP、AMG8833、MR60FDA1、BMV31T001。
+
+BMC81M001/examples/TCP/voice_cmd_list.h
+- 語音檔 VOC_1 到 VOC_10 的編號定義。
+
+BMC81M001/examples/TCP/layout.png
+- 範例接線配置圖。
+
+BMC81M001/examples/TCP/schematic.png
+- 範例電路原理圖。
+
+BMC81M001/examples/TCP/Thumbs.db
+- Windows 縮圖快取，非必要。
+
+BMC81M001/examples/TCP/記錄/1125demo.cpp
+- 早期整合 demo：跌倒、活動量、溫度上傳、語音。
+
+BMC81M001/examples/TCP/記錄/1204.cpp
+- 加入 human presence 相關判斷跡象。
+
+BMC81M001/examples/TCP/記錄/1204_2.cpp
+- 加入 isHumanExistPacket()。
+
+BMC81M001/examples/TCP/記錄/1208.cpp
+- 加入 parseSecondValueInBracket() 與 readRadarPacket()。
+
+BMC81M001/examples/TCP/記錄/1209_1.cpp
+- 簡化版，保留基本跌倒/活動量/溫度。
+
+BMC81M001/examples/TCP/記錄/1209_2.cpp
+- 加入 parseServerNumber()。
+
+BMC81M001/examples/TCP/記錄/1209_3.cpp
+- 加入 serverTargetSeconds 與 quietSeconds 概念。
+
+BMC81M001/examples/TCP/記錄/1210_1.cpp
+- 測試/簡化版本，部分溫度傳送可能被註解。
+
+BMC81M001/examples/TCP/記錄/1210_2.CPP
+- serverTargetSeconds/quietSeconds 版本，副檔名大寫。
+
+BMC81M001/examples/TCP/記錄/1215_2.cpp
+- 加入 presenceActive 與 isPresencePacket()。
+
+BMC81M001/examples/TCP/記錄/1216_1.cpp
+- 加入 activityHistory ring buffer，判斷連續低活動量。
+
+BMC81M001/examples/TCP/記錄/1216_2.cpp
+- 接近正式版，整合 server 指定秒數、歷史矩陣、跌倒與溫度。
+
+BMC81M001/examples/TCP/記錄/1217_1.cpp
+- 與 1216_2 高度相似，可能是備份或小改版。
+
+BMC81M001/examples/TCP/記錄/1218_1.cpp
+- 最新記錄版，與目前 TCP.ino 高度一致。
+
+
